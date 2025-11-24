@@ -8,6 +8,7 @@ interface AuthContextType {
   signup: (email: string, password: string, firstName: string, lastName: string, phone: string, role: 'Renter' | 'Host') => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,20 +48,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (user) {
         // User is logged in - check role and navigate accordingly
-        if (user.role?.toLowerCase() === 'admin') {
-          console.log('AuthContext: Admin user detected');
-          // Only navigate to admin dashboard if not already on an admin page and not on home page
-          if (!location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin-dashboard') && location.pathname !== '/') {
+        const userRole = user.role?.toLowerCase();
+        console.log('AuthContext: User logged in', { role: userRole, pathname: location.pathname });
+        
+        if (userRole === 'admin') {
+          console.log('AuthContext: Admin user detected, role:', user.role);
+          // Navigate to admin dashboard if not already on an admin page
+          // Allow navigation from home page too
+          if (!location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin-dashboard')) {
             console.log('AuthContext: Navigating admin user to admin dashboard');
             navigate('/admin-dashboard', { replace: true });
           }
         } else if (!location.pathname.startsWith('/admin') && !location.pathname.includes('admin')) {
-          console.log('AuthContext: Navigating regular user to dashboard');
-          if (!location.pathname.startsWith('/dashboard')) {
+          console.log('AuthContext: Regular user detected, navigating to dashboard');
+          // Only navigate to dashboard if not already on dashboard or home page
+          if (!location.pathname.startsWith('/dashboard') && location.pathname !== '/') {
             navigate('/dashboard', { replace: true });
           }
-        } else if (location.pathname.startsWith('/admin')) {
-          console.log('AuthContext: Admin route detected, not redirecting');
         }
       } else {
         // User is logged out - navigate to home page only if not already there
@@ -103,12 +107,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const sendPasswordResetEmail = async (email: string) => {
+    try {
+      await firebaseAuthService.sendPasswordResetEmail(email);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
     signup,
     login,
     logout,
+    sendPasswordResetEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

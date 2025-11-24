@@ -28,6 +28,7 @@ import {
 import GlassCard from './GlassCard';
 import GlassInput from './GlassInput';
 import Icon from './Icon';
+import { useAuth } from '../context/AuthContext';
 
 interface VehicleFormData {
   // Basic Info
@@ -115,6 +116,7 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
   onSuccess,
   initialData
 }) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<VehicleFormData>({
@@ -324,9 +326,15 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
       submitData.append('category', formData.type || 'uncategorized');
       
       // Make API call to create vehicle listing
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const { getApiBaseUrl } = await import('../utils/apiConfig');
       const API_BASE_URL = getApiBaseUrl();
+      
+      // Get Firebase token from auth context
+      if (!user?.uid) {
+        throw new Error('User not authenticated');
+      }
+      const token = await user.getIdToken();
+      
       const response = await fetch(`${API_BASE_URL}/enhanced-vehicles`, {
         method: 'POST',
         headers: {
@@ -343,7 +351,12 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
       
       const result = await response.json();
       
-      onSuccess(result.vehicle || formData);
+      // Emit custom event to refresh host dashboard
+      window.dispatchEvent(new CustomEvent('listingCreated', { 
+        detail: { listing: result.vehicle || result.data } 
+      }));
+      
+      onSuccess(result.vehicle || result.data || formData);
       toast.success('Vehicle listing created successfully! It will be reviewed by admin before going live.');
       onClose();
     } catch (error) {
@@ -1211,38 +1224,38 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
         className="w-full max-w-5xl max-h-[95vh] bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 overflow-hidden shadow-2xl flex flex-col"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-b border-white/20 p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-r from-green-600/30 to-green-700/30 border-b border-white/20 p-4">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-3xl font-bold text-white">Add New Vehicle</h1>
-              <p className="text-white/70">Step {currentStep} of {steps.length}: {steps[currentStep - 1]?.title}</p>
+              <h1 className="text-xl font-bold text-white">Add New Vehicle</h1>
+              <p className="text-white/70 text-sm">Step {currentStep} of {steps.length}: {steps[currentStep - 1]?.title}</p>
             </div>
             <button
               onClick={onClose}
-              className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-all hover:scale-105"
+              className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all hover:scale-105"
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-4 h-4 text-white" />
             </button>
           </div>
 
           {/* Progress Bar */}
-          <div className="mt-6">
-            <div className="flex items-center space-x-3">
+          <div className="mt-3">
+            <div className="flex items-center space-x-2">
               {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
                     index + 1 <= currentStep
                       ? 'bg-blue-500 text-white shadow-lg'
                       : 'bg-white/20 text-white/60'
                   }`}>
                     {index + 1 < currentStep ? (
-                      <CheckCircle className="w-5 h-5" />
+                      <CheckCircle className="w-4 h-4" />
                     ) : (
                       index + 1
                     )}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-12 h-1 rounded-full transition-all ${
+                    <div className={`w-8 h-0.5 rounded-full transition-all ${
                       index + 1 < currentStep ? 'bg-blue-500' : 'bg-white/20'
                     }`} />
                   )}
@@ -1253,32 +1266,32 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>
         </div>
 
         {/* Footer */}
-        <div className="bg-white/5 border-t border-white/20 p-6 flex-shrink-0">
+        <div className="bg-white/5 border-t border-white/20 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
-              className={`px-8 py-4 rounded-2xl font-medium transition-all flex items-center ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center ${
                 currentStep === 1
                   ? 'bg-white/10 text-white/50 cursor-not-allowed'
                   : 'bg-white/20 text-white hover:bg-white/30 hover:scale-105'
               }`}
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
             </button>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <button
                 onClick={onClose}
-                className="px-8 py-4 bg-white/10 text-white rounded-2xl font-medium hover:bg-white/20 transition-all hover:scale-105"
+                className="px-6 py-2.5 bg-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20 transition-all hover:scale-105"
               >
                 Cancel
               </button>
@@ -1286,16 +1299,16 @@ const ModernVehicleForm: React.FC<ModernVehicleFormProps> = ({
               {currentStep < steps.length ? (
                 <button
                   onClick={nextStep}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all hover:scale-105 shadow-lg flex items-center"
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all hover:scale-105 shadow-lg flex items-center"
                 >
                   Next
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </button>
               ) : (
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className={`px-8 py-4 rounded-2xl font-medium transition-all shadow-lg ${
+                  className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all shadow-lg ${
                     loading
                       ? 'bg-white/20 text-white/50 cursor-not-allowed'
                       : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:scale-105'

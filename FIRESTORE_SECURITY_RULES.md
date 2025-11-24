@@ -144,3 +144,9 @@ You can test rules using the Firebase Console:
 
 
 
+
+
+
+
+
+

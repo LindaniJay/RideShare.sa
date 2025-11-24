@@ -76,25 +76,36 @@ const RenterDashboard: React.FC = () => {
   const [approvalFormType, setApprovalFormType] = useState<'DocumentVerification' | 'ProfileVerification' | null>(null);
 
   useEffect(() => {
-    fetchDashboardData();
-    
-    // Listen for booking updates
-    const handleBookingCreated = () => {
+    if (user?.uid) {
       fetchDashboardData();
-    };
-    
-    const handleBookingUpdated = () => {
-      fetchDashboardData();
-    };
-    
-    window.addEventListener('bookingCreated', handleBookingCreated);
-    window.addEventListener('bookingUpdated', handleBookingUpdated);
-    
-    return () => {
-      window.removeEventListener('bookingCreated', handleBookingCreated);
-      window.removeEventListener('bookingUpdated', handleBookingUpdated);
-    };
-  }, [user?.id]);
+      
+      // Set up polling for real-time updates every 30 seconds
+      const interval = setInterval(() => {
+        fetchDashboardData();
+      }, 30000);
+      
+      // Listen for booking updates
+      const handleBookingCreated = (event?: CustomEvent) => {
+        fetchDashboardData();
+        if (event?.detail?.booking) {
+          toast.success('New booking confirmed!');
+        }
+      };
+      
+      const handleBookingUpdated = () => {
+        fetchDashboardData();
+      };
+      
+      window.addEventListener('bookingCreated', handleBookingCreated as EventListener);
+      window.addEventListener('bookingUpdated', handleBookingUpdated);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('bookingCreated', handleBookingCreated as EventListener);
+        window.removeEventListener('bookingUpdated', handleBookingUpdated);
+      };
+    }
+  }, [user?.uid]);
 
   const fetchDashboardData = async () => {
     try {
@@ -109,8 +120,8 @@ const RenterDashboard: React.FC = () => {
       const token = await user.getIdToken();
       const API_BASE_URL = getApiBaseUrl();
       
-      // Fetch bookings from API
-      const response = await fetch(`${API_BASE_URL}/bookings/user/${user.uid}`, {
+      // Fetch bookings from unified endpoint (returns bookings where user is renter or host)
+      const response = await fetch(`${API_BASE_URL}/bookings/unified?limit=100`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,30 +129,39 @@ const RenterDashboard: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch bookings');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch bookings');
       }
 
       const data = await response.json();
       
       if (data.success) {
-        setBookings(data.data || []);
+        // Filter to only show bookings where user is the renter
+        const renterBookings = (data.data || []).filter((booking: any) => {
+          // Check if booking.renterId matches user.id (UUID) or if renter object exists
+          return booking.renterId === user.id || 
+                 booking.renter?.id === user.id ||
+                 String(booking.renterId) === String(user.id);
+        });
+        
+        setBookings(renterBookings);
         
         // Convert bookings to payments for display
-        const bookingPayments = (data.data || []).map((booking: Booking) => ({
+        const bookingPayments = renterBookings.map((booking: any) => ({
           id: `payment_${booking.id}`,
-          amount: booking.totalPrice || 0,
-          status: (booking.paymentStatus === 'paid' ? 'completed' : 'pending') as 'pending' | 'completed' | 'failed' | 'refunded',
-          method: 'stripe' as 'stripe' | 'payfast',
-          bookingId: booking.id.toString(),
-          createdAt: booking.createdAt
+          amount: booking.totalPrice || booking.total_price || 0,
+          status: (booking.paymentStatus === 'paid' || booking.payment_status === 'paid' ? 'completed' : 'pending') as 'pending' | 'completed' | 'failed' | 'refunded',
+          method: (booking.paymentMethod || booking.payment_method || 'stripe') as 'stripe' | 'payfast',
+          bookingId: booking.bookingId || booking.booking_id || booking.id.toString(),
+          createdAt: booking.createdAt || booking.created_at
         }));
         setPayments(bookingPayments);
       } else {
         throw new Error(data.error || 'Failed to fetch bookings');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      toast.error(error.message || 'Failed to load dashboard data');
       setBookings([]);
       setPayments([]);
     } finally {
@@ -177,7 +197,7 @@ const RenterDashboard: React.FC = () => {
           
         case 'notifications':
           // Fetch notifications
-          const notificationsResponse = await fetch(`${API_BASE_URL}/notifications/user/${user.uid}`, {
+          const notificationsResponse = await fetch(`${API_BASE_URL}/notifications`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -235,17 +255,18 @@ const RenterDashboard: React.FC = () => {
       const token = await user.getIdToken();
       const API_BASE_URL = getApiBaseUrl();
       
-      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}`, {
+      // Use unified endpoint for cancellation
+      const response = await fetch(`${API_BASE_URL}/bookings/unified/${bookingId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ uid: user.uid })
+        }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to cancel booking');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to cancel booking');
       }
 
       const data = await response.json();
@@ -256,9 +277,9 @@ const RenterDashboard: React.FC = () => {
       } else {
         throw new Error(data.error || 'Failed to cancel booking');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error cancelling booking:', error);
-      toast.error('Failed to cancel booking');
+      toast.error(error.message || 'Failed to cancel booking');
     }
   };
 
@@ -292,7 +313,7 @@ const RenterDashboard: React.FC = () => {
 
   return (
     <div className="page-background">
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-indigo-900/20 backdrop-blur-sm"></div>
+      <div className="fixed inset-0 bg-gradient-to-br from-green-900/20 via-green-800/20 to-green-700/20 backdrop-blur-sm"></div>
       <motion.div 
         className="relative min-h-screen p-4 lg:p-8 space-y-6 lg:space-y-8"
         variants={containerVariants}
@@ -305,7 +326,7 @@ const RenterDashboard: React.FC = () => {
         variants={itemVariants}
       >
         <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center shadow-lg">
             <span className="text-2xl font-bold text-white">
               {user?.name?.charAt(0) || 'U'}
             </span>
@@ -377,11 +398,11 @@ const RenterDashboard: React.FC = () => {
             animated
             className="relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -translate-y-10 translate-x-10"></div>
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-400/20 to-green-600/20 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-500/20 rounded-xl">
-                  <Icon name="Car" size="lg" className="text-blue-400" />
+                <div className="p-3 bg-green-500/20 rounded-xl">
+                  <Icon name="Car" size="lg" className="text-green-400" />
                 </div>
                 <span className="text-xs text-green-400 font-medium">+12%</span>
               </div>
@@ -685,7 +706,7 @@ const RenterDashboard: React.FC = () => {
                 </div>
                 <button
                   onClick={() => navigate('/search')}
-                  className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                 >
                   Search Vehicles
                 </button>
@@ -700,7 +721,7 @@ const RenterDashboard: React.FC = () => {
                     onClick={() => navigate('/search')}
                     className="p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors text-center"
                   >
-                    <Icon name="Car" size="lg" className="mx-auto mb-2 text-blue-400" />
+                    <Icon name="Car" size="lg" className="mx-auto mb-2 text-green-400" />
                     <span className="text-white font-medium">{category}</span>
                   </button>
                 ))}
@@ -790,7 +811,7 @@ const RenterDashboard: React.FC = () => {
                   <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                     <h4 className="text-white font-medium mb-2">Stripe Payment</h4>
                     <p className="text-white/70 text-sm mb-3">Secure credit card processing</p>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                       Setup Stripe
                     </button>
                   </div>
@@ -879,7 +900,7 @@ const RenterDashboard: React.FC = () => {
                 </p>
                 <button
                   onClick={() => handleSubmitApprovalRequest('DocumentVerification')}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
                 >
                   <Icon name="Upload" size="sm" />
                   <span>Request Document Verification</span>
@@ -903,7 +924,7 @@ const RenterDashboard: React.FC = () => {
                   <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                     <h4 className="text-white font-medium mb-2">Monthly Summary</h4>
                     <p className="text-white/70 text-sm mb-3">View your monthly booking activity and spending</p>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                       Generate Report
                     </button>
                   </div>
@@ -951,7 +972,7 @@ const RenterDashboard: React.FC = () => {
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                   </label>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
@@ -961,7 +982,7 @@ const RenterDashboard: React.FC = () => {
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                   </label>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
@@ -971,7 +992,7 @@ const RenterDashboard: React.FC = () => {
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                   </label>
                 </div>
               </div>
@@ -988,7 +1009,7 @@ const RenterDashboard: React.FC = () => {
                   <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                     <h4 className="text-white font-medium mb-2">FAQ</h4>
                     <p className="text-white/70 text-sm mb-3">Find answers to common questions</p>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                       Browse FAQ
                     </button>
                   </div>
@@ -1059,7 +1080,7 @@ const RenterDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <button className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                     Save Changes
                   </button>
                 </div>
@@ -1073,7 +1094,7 @@ const RenterDashboard: React.FC = () => {
                     <h4 className="text-white font-medium">Two-Factor Authentication</h4>
                     <p className="text-white/70 text-sm">Add an extra layer of security to your account</p>
                   </div>
-                  <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                     Enable 2FA
                   </button>
                 </div>

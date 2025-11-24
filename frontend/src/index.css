@@ -35,7 +35,7 @@
   }
 
   .page-background-gradient {
-    @apply min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900;
+    @apply min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700;
   }
 
   .page-background-light {
@@ -56,7 +56,7 @@
 @layer components {
   /* Standardized Background System */
   .bg-primary {
-    @apply bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900;
+    @apply bg-gradient-to-br from-green-900 via-green-800 to-green-700;
   }
 
   .bg-secondary {
@@ -216,7 +216,7 @@
 
   /* Enhanced Glass Form Elements with Better Readability */
   .glass-input-enhanced {
-    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/70 bg-white/15 backdrop-blur-md border border-white/30 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 hover:border-white/40;
+    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/70 bg-white/15 backdrop-blur-md border border-white/30 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400 hover:border-white/40;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
   }
@@ -230,7 +230,7 @@
   }
   
   .glass-button-primary {
-    @apply bg-blue-600/80 backdrop-blur-md border border-blue-500/30 rounded-lg shadow-lg hover:bg-blue-600 transition-all duration-300 text-white font-medium;
+    @apply bg-green-600/80 backdrop-blur-md border border-green-500/30 rounded-lg shadow-lg hover:bg-green-600 transition-all duration-300 text-white font-medium;
   }
   
   .glass-button-secondary {
@@ -252,7 +252,7 @@
   
   /* Professional Button Styles */
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+    @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
   }
   
   .btn-secondary {
@@ -270,20 +270,20 @@
   
   /* Input Fields */
   .input-field {
-    @apply block w-full rounded-lg border border-white/20 bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300;
+    @apply block w-full rounded-lg border border-white/20 bg-white/5 backdrop-blur-md text-white placeholder-white/50 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all duration-300;
   }
 
   /* Glass Form Elements */
   .glass-input {
-    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 hover:border-white/30;
+    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400 hover:border-white/30;
   }
 
   .glass-select {
-    @apply w-full px-4 py-3 rounded-xl text-white bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 hover:border-white/30;
+    @apply w-full px-4 py-3 rounded-xl text-white bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400 hover:border-white/30;
   }
 
   .glass-textarea {
-    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 hover:border-white/30 resize-none;
+    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400 hover:border-white/30 resize-none;
   }
 
   /* Dropdown Styles */
@@ -292,7 +292,7 @@
   }
 
   .glass-dropdown-button {
-    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-white/30 flex items-center justify-between;
+    @apply w-full px-4 py-3 rounded-xl text-white placeholder-white/50 bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/50 hover:border-white/30 flex items-center justify-between;
   }
 
   .glass-dropdown-menu {
@@ -312,19 +312,19 @@
   }
 
   .glass-dropdown-option.selected {
-    @apply bg-blue-500/20 text-blue-200;
+    @apply bg-green-500/20 text-green-200;
   }
 
   .glass-dropdown-option.selected svg {
-    @apply text-blue-300;
+    @apply text-green-300;
   }
 
   .glass-dropdown-option.selected:hover {
-    @apply bg-blue-500/30 text-blue-100;
+    @apply bg-green-500/30 text-green-100;
   }
 
   .glass-dropdown-option.selected:hover svg {
-    @apply text-blue-200;
+    @apply text-green-200;
   }
 
   /* Enhanced Dropdown and Navigation Components */
@@ -442,7 +442,7 @@
 
   /* Focus states for better visibility */
   input:focus, select:focus, textarea:focus {
-    @apply ring-2 ring-blue-500/50 border-blue-400;
+    @apply ring-2 ring-green-500/50 border-green-400;
   }
 
   /* Hover states */

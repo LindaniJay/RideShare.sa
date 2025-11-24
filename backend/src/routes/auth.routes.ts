@@ -41,6 +41,16 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
     // Check if user exists in database
     let user = await User.findOne({ where: { firebase_uid: decodedToken.uid } });
     
+    // If not found by Firebase UID, try to find by email
+    if (!user && decodedToken.email) {
+      user = await User.findOne({ where: { email: decodedToken.email } });
+      if (user) {
+        // Update Firebase UID if found by email
+        logger.info(`Updating Firebase UID for user ${user.email}`);
+        await user.update({ firebase_uid: decodedToken.uid });
+      }
+    }
+    
     // If user doesn't exist, create them (auto-register on first login)
     if (!user) {
       logger.info(`User ${decodedToken.uid} not found in database, creating new user`);
@@ -48,24 +58,40 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
       const displayName = decodedToken.name || decodedToken.email?.split('@')[0] || 'User';
       const nameParts = displayName.split(' ');
       
+      // Check if user has admin custom claims
+      const isAdmin = decodedToken.admin === true || decodedToken.role === 'admin';
+      
       user = await User.create({
         firebase_uid: decodedToken.uid,
         email: decodedToken.email || '',
         display_name: displayName,
         firstName: nameParts[0] || '',
         lastName: nameParts.slice(1).join(' ') || '',
-        role: 'renter', // Default role
+        role: isAdmin ? 'admin' : 'renter', // Set role based on Firebase custom claims
         isVerified: decodedToken.email_verified || false,
         profile_image_url: decodedToken.picture || undefined,
         phone_number: decodedToken.phone_number || undefined
       });
       
-      logger.info(`Auto-registered user ${user.id} on first login`);
+      logger.info(`Auto-registered user ${user.id} on first login with role: ${user.role}`);
     } else {
       // Update last login and increment login count
-      user.incrementLoginCount();
-      user.last_login_at = new Date();
-      await user.save();
+      try {
+        user.incrementLoginCount();
+        user.last_login_at = new Date();
+        await user.save();
+      } catch (saveError: any) {
+        logger.warn('Could not update login count:', saveError?.message);
+        // Continue even if save fails
+      }
+      
+      // Reload user to get latest data
+      try {
+        await user.reload();
+      } catch (reloadError: any) {
+        logger.warn('Could not reload user:', reloadError?.message);
+        // Continue even if reload fails
+      }
     }
 
     const tokens = AuthService.generateTokens(user.id.toString());

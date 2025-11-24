@@ -199,3 +199,9 @@ Your Supabase database is now configured and ready to use. The application will 
 
 
 
+
+
+
+
+
+

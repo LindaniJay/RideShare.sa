@@ -74,7 +74,7 @@ const Pricing: React.FC = () => {
               {popularCategories.map((category) => (
                 <GlassCard key={category.id} className="p-6 hover:bg-white/20 transition-all duration-300">
                   <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center mr-4">
                       <Icon name={category.icon} size="lg" className="text-white" />
                     </div>
                     <div>
@@ -106,7 +106,7 @@ const Pricing: React.FC = () => {
 
                   <Link
                     to={`/search?category=${category.id}`}
-                    className="block w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                    className="block w-full bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
                   >
                     Browse {category.name}
                   </Link>
@@ -125,7 +125,7 @@ const Pricing: React.FC = () => {
                 <GlassCard key={category.id} className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center mr-3">
                         <Icon name={category.icon} size="sm" className="text-white" />
                       </div>
                       <div>
@@ -204,7 +204,7 @@ const Pricing: React.FC = () => {
 
                   <Link
                     to="/contact"
-                    className="block w-full bg-gradient-to-r from-green-500 to-blue-600 text-white text-center py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                    className="block w-full bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
                   >
                     Book Charter
                   </Link>
@@ -224,7 +224,7 @@ const Pricing: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/search"
-                className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                className="bg-white text-green-600 px-8 py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 Browse All Vehicles
               </Link>

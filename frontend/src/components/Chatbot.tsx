@@ -1144,7 +1144,7 @@ const Chatbot: React.FC = () => {
         className="flex justify-start"
       >
         <div className="flex items-end space-x-1">
-          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
             🤖
           </div>
           <div className="bg-white dark:bg-gray-700 px-3 py-2 rounded-lg rounded-bl-sm border border-gray-200 dark:border-gray-600 shadow-sm max-w-[200px]">
@@ -1157,7 +1157,7 @@ const Chatbot: React.FC = () => {
                   <motion.button
                     key={index}
                     onClick={() => handleSendMessage(option.text, option)}
-                    className="text-[10px] bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-2 py-1 rounded-full transition-colors"
+                    className="text-[10px] bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 px-2 py-1 rounded-full transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -1186,7 +1186,7 @@ const Chatbot: React.FC = () => {
         className="flex justify-start"
       >
         <div className="flex items-end space-x-1">
-          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
             🤖
           </div>
           <div className="bg-white dark:bg-gray-700 px-3 py-2 rounded-lg rounded-bl-sm border border-gray-200 dark:border-gray-600 shadow-sm max-w-[250px]">
@@ -1205,7 +1205,7 @@ const Chatbot: React.FC = () => {
                     <div className="text-[10px] text-gray-600 dark:text-gray-300">{item.description}</div>
                     <motion.button
                       onClick={() => handleSendMessage(`Select ${item.title}`)}
-                      className="mt-1 text-[10px] bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                      className="mt-1 text-[10px] bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1235,7 +1235,7 @@ const Chatbot: React.FC = () => {
         className="flex justify-start"
       >
         <div className="flex items-end space-x-1">
-          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
             🤖
           </div>
           <div className="bg-white dark:bg-gray-700 px-3 py-2 rounded-lg rounded-bl-sm border border-gray-200 dark:border-gray-600 shadow-sm max-w-[250px]">
@@ -1320,20 +1320,20 @@ const Chatbot: React.FC = () => {
       >
         <div className={`flex items-end space-x-1 ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {!message.isUser && (
-            <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
               🤖
             </div>
           )}
           <div
             className={`max-w-[200px] px-3 py-2 rounded-lg shadow-sm ${
               message.isUser
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-sm'
+                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white rounded-br-sm'
                 : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-bl-sm'
             }`}
           >
             <div className="text-xs whitespace-pre-line leading-relaxed">{message.text}</div>
             <p className={`text-[10px] mt-1 ${
-              message.isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+              message.isUser ? 'text-green-100' : 'text-gray-500 dark:text-gray-400'
             }`}>
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -1353,7 +1353,7 @@ const Chatbot: React.FC = () => {
       {/* Enhanced Chat Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white p-4 rounded-full shadow-2xl z-50 transition-all duration-300 hover:shadow-blue-500/25"
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-blue-700 hover:to-purple-700 text-white p-4 rounded-full shadow-2xl z-50 transition-all duration-300 hover:shadow-blue-500/25"
         whileHover={{ scale: 1.1, rotate: 5 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Open chat"
@@ -1410,7 +1410,7 @@ const Chatbot: React.FC = () => {
             className="fixed bottom-20 right-4 w-80 h-[450px] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col backdrop-blur-sm bg-white/95 dark:bg-gray-900/95"
           >
             {/* Enhanced Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-t-xl flex items-center justify-between">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-3 rounded-t-xl flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-2 backdrop-blur-sm">
                   <span className="text-sm">🤖</span>
@@ -1419,7 +1419,7 @@ const Chatbot: React.FC = () => {
                   <h3 className="font-bold text-sm">RideShare Assistant</h3>
                   <div className="flex items-center">
                     <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1 animate-pulse"></div>
-                    <p className="text-xs text-blue-100">Online</p>
+                    <p className="text-xs text-green-100">Online</p>
                     {context.currentFlow && (
                       <span className="ml-2 text-xs bg-blue-500 px-1 rounded">
                         {context.currentFlow.name}
@@ -1440,7 +1440,7 @@ const Chatbot: React.FC = () => {
                       preferences: { ...prev.preferences, language: nextLanguage }
                     }));
                   }}
-                  className="text-white hover:text-blue-200 transition-colors p-1.5 rounded hover:bg-white/10"
+                  className="text-white hover:text-green-200 transition-colors p-1.5 rounded hover:bg-white/10"
                   title={`Current language: ${context.preferences.language.toUpperCase()}`}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -1486,7 +1486,7 @@ const Chatbot: React.FC = () => {
                       }
                     });
                   }}
-                  className="text-white hover:text-blue-200 transition-colors p-1.5 rounded hover:bg-white/10"
+                  className="text-white hover:text-green-200 transition-colors p-1.5 rounded hover:bg-white/10"
                   title="Start new conversation"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -1497,7 +1497,7 @@ const Chatbot: React.FC = () => {
                 </motion.button>
                 <motion.button
                   onClick={() => setIsOpen(false)}
-                  className="text-white hover:text-blue-200 transition-colors p-1.5 rounded hover:bg-white/10"
+                  className="text-white hover:text-green-200 transition-colors p-1.5 rounded hover:bg-white/10"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -1519,7 +1519,7 @@ const Chatbot: React.FC = () => {
                   className="flex justify-start"
                 >
                   <div className="flex items-end space-x-1">
-                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                       🤖
                     </div>
                     <div className="bg-white dark:bg-gray-700 px-3 py-2 rounded-lg rounded-bl-sm border border-gray-200 dark:border-gray-600 shadow-sm">
@@ -1547,7 +1547,7 @@ const Chatbot: React.FC = () => {
                     <motion.button
                       key={index}
                       onClick={() => handleQuickReply(reply.text)}
-                      className="text-xs bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 px-3 py-2 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-gray-500 flex items-center space-x-1 shadow-sm hover:shadow-md"
+                      className="text-xs bg-white dark:bg-gray-700 hover:bg-green-50 dark:hover:bg-gray-600 px-3 py-2 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-gray-500 flex items-center space-x-1 shadow-sm hover:shadow-md"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1584,7 +1584,7 @@ const Chatbot: React.FC = () => {
                 <motion.button
                   onClick={() => handleSendMessage()}
                   disabled={!inputValue.trim() || isTyping}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl disabled:shadow-none"
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl disabled:shadow-none"
                   whileHover={{ scale: inputValue.trim() && !isTyping ? 1.05 : 1 }}
                   whileTap={{ scale: inputValue.trim() && !isTyping ? 0.95 : 1 }}
                 >

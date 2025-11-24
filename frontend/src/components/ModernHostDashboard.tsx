@@ -87,6 +87,23 @@ const ModernHostDashboard: React.FC<ModernHostDashboardProps> = ({ className = '
   useEffect(() => {
     if (user?.uid) {
       fetchDashboardData();
+      
+      // Set up polling for real-time updates every 30 seconds
+      const interval = setInterval(() => {
+        fetchDashboardData();
+      }, 30000);
+      
+      // Listen for listing creation events
+      const handleListingCreated = () => {
+        fetchDashboardData();
+      };
+      
+      window.addEventListener('listingCreated', handleListingCreated);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('listingCreated', handleListingCreated);
+      };
     }
   }, [user?.uid]);
 
@@ -165,13 +182,44 @@ const ModernHostDashboard: React.FC<ModernHostDashboardProps> = ({ className = '
         if (earningsData.success && earningsData.data) {
           setStats(prev => ({
             ...prev,
-            totalEarnings: earningsData.data.totalEarnings || prev.totalEarnings
+            totalEarnings: earningsData.data.totalEarnings || prev.totalEarnings,
+            monthlyEarnings: earningsData.data.monthlyEarnings?.reduce((sum: number, m: any) => sum + (m.earnings || 0), 0) || prev.monthlyEarnings,
+            weeklyEarnings: (earningsData.data.monthlyEarnings?.[0]?.earnings || 0) * 0.25 || prev.weeklyEarnings
           }));
         }
       }
-    } catch (error) {
+
+      // Fetch host bookings for stats
+      const bookingsResponse = await fetch(`${API_BASE_URL}/bookings/unified?limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (bookingsResponse.ok) {
+        const bookingsData = await bookingsResponse.json();
+        if (bookingsData.success) {
+          // Filter bookings where user is the host
+          const hostBookings = (bookingsData.data || []).filter((booking: any) => {
+            return booking.hostId === user.id || 
+                   booking.host?.id === user.id ||
+                   String(booking.hostId) === String(user.id);
+          });
+          
+          setStats(prev => ({
+            ...prev,
+            totalBookings: hostBookings.length,
+            // Calculate active bookings
+            activeListings: prev.activeListings + hostBookings.filter((b: any) => 
+              ['confirmed', 'active'].includes(b.status)
+            ).length
+          }));
+        }
+      }
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      toast.error(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -236,7 +284,7 @@ const ModernHostDashboard: React.FC<ModernHostDashboardProps> = ({ className = '
         <div className="flex items-center space-x-4">
           <GlassButton
             onClick={() => setShowVehicleForm(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:scale-105 transition-all"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:scale-105 transition-all"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add New Vehicle

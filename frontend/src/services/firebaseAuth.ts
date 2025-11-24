@@ -207,11 +207,17 @@ class FirebaseAuthService {
         } else {
           const result = await response.json();
           if (result.user && result.user.role) {
-            // Normalize backend role response
-            const backendRole = result.user.role.toLowerCase() as 'renter' | 'host';
+            // Normalize backend role response - handle admin, renter, host
+            const backendRole = result.user.role.toLowerCase();
             
-            // Update userData with backend response (capitalize for frontend)
-            userData.role = (backendRole.charAt(0).toUpperCase() + backendRole.slice(1)) as 'Renter' | 'Host';
+            // Update userData with backend response
+            if (backendRole === 'admin') {
+              userData.role = 'admin';
+            } else if (backendRole === 'host') {
+              userData.role = 'Host';
+            } else {
+              userData.role = 'Renter'; // Default
+            }
             
             // Update Firestore with backend role (store lowercase)
             try {
@@ -270,7 +276,33 @@ class FirebaseAuthService {
       try {
         userData = await this.getUserRole(firebaseUser.uid);
       } catch (error) {
-        console.warn('Failed to get user data from Firestore, creating default:', error);
+        console.warn('Failed to get user data from Firestore, checking backend for role:', error);
+        // Try to get role from backend first before defaulting
+        let defaultRole: 'Renter' | 'Host' | 'admin' = 'Renter';
+        try {
+          const token = await firebaseUser.getIdToken();
+          const { getApiBaseUrl } = await import('../utils/apiConfig');
+          const apiUrl = getApiBaseUrl();
+          const response = await fetch(`${apiUrl}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firebaseToken: token })
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.user?.role) {
+              const backendRole = result.user.role.toLowerCase();
+              if (backendRole === 'admin') {
+                defaultRole = 'admin';
+              } else if (backendRole === 'host') {
+                defaultRole = 'Host';
+              }
+            }
+          }
+        } catch (backendError) {
+          console.warn('Could not fetch role from backend, using default Renter');
+        }
+        
         // Create default user object if Firestore fails
         userData = {
           uid: firebaseUser.uid,
@@ -280,7 +312,7 @@ class FirebaseAuthService {
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
           phone: '',
           phoneNumber: '',
-          role: 'Renter',
+          role: defaultRole,
           approvalStatus: 'pending',
           createdAt: new Date(),
           getIdToken: () => firebaseUser.getIdToken(),
@@ -291,7 +323,7 @@ class FirebaseAuthService {
         try {
           await setDoc(doc(db, 'users', firebaseUser.uid), {
             ...this.serializeUserForFirestore(userData),
-            role: 'renter', // Store lowercase in Firestore
+            role: defaultRole === 'admin' ? 'admin' : defaultRole.toLowerCase(), // Store lowercase in Firestore
             createdAt: serverTimestamp()
           });
         } catch (saveError) {
@@ -299,7 +331,7 @@ class FirebaseAuthService {
         }
       }
       
-      // Ensure user is registered in backend database
+      // Ensure user is registered in backend database and get authoritative role
       try {
         const token = await firebaseUser.getIdToken();
         const { getApiBaseUrl } = await import('../utils/apiConfig');
@@ -320,12 +352,28 @@ class FirebaseAuthService {
           // Continue with Firebase auth even if backend fails
         } else {
           const result = await response.json();
-          if (result.user && result.user.role) {
-            // Normalize backend role response
-            const backendRole = result.user.role.toLowerCase() as 'renter' | 'host';
+          console.log('Backend login response:', { 
+            hasUser: !!result.user, 
+            role: result.user?.role, 
+            resultRole: result.role 
+          });
+          
+          if (result.user && (result.user.role || result.role)) {
+            // Normalize backend role response - handle admin, renter, host
+            const backendRole = (result.user.role || result.role).toLowerCase();
+            console.log('Backend role received:', backendRole);
             
-            // Update userData with backend response (capitalize for frontend)
-            userData.role = (backendRole.charAt(0).toUpperCase() + backendRole.slice(1)) as 'Renter' | 'Host';
+            // Update userData with backend response (backend is authoritative)
+            if (backendRole === 'admin') {
+              userData.role = 'admin';
+              console.log('✅ User role set to admin');
+            } else if (backendRole === 'host') {
+              userData.role = 'Host';
+              console.log('✅ User role set to Host');
+            } else {
+              userData.role = 'Renter'; // Default
+              console.log('✅ User role set to Renter');
+            }
             
             // Update Firestore with backend role (store lowercase)
             try {
@@ -339,15 +387,20 @@ class FirebaseAuthService {
                 approvalStatus: userData.approvalStatus,
                 updatedAt: serverTimestamp()
               }, { merge: true });
+              console.log('✅ Firestore updated with role:', backendRole);
             } catch (updateError) {
               console.warn('Failed to update Firestore with backend data:', updateError);
             }
+          } else {
+            console.warn('⚠️ Backend response missing role information');
           }
         }
       } catch (error) {
         console.warn('Error logging in user in backend:', error);
         // Continue with Firebase auth even if backend fails
       }
+      
+      console.log('Final userData role before return:', userData.role);
       
       this.currentUser = userData;
       return userData;
@@ -628,6 +681,38 @@ class FirebaseAuthService {
     } catch (error) {
       console.error('Error getting user token:', error);
       return null;
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    try {
+      // Use the imported sendPasswordResetEmail from firebase/auth
+      const firebaseAuth = await import('firebase/auth');
+      await firebaseAuth.sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      const errorCode = error.code || error.message;
+      throw new Error(this.getPasswordResetErrorMessage(errorCode));
+    }
+  }
+
+  /**
+   * Get password reset error messages
+   */
+  private getPasswordResetErrorMessage(errorCode: string): string {
+    switch (errorCode) {
+      case 'auth/user-not-found':
+        return 'No account found with this email address.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address.';
+      case 'auth/too-many-requests':
+        return 'Too many password reset attempts. Please try again later.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your connection.';
+      default:
+        return 'Failed to send password reset email. Please try again.';
     }
   }
 

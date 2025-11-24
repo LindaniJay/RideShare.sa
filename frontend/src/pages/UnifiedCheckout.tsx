@@ -8,9 +8,7 @@ import GlassButton from '../components/GlassButton';
 import { containerVariants, itemVariants } from '../utils/motionVariants';
 import { toast } from 'react-hot-toast';
 import { Calendar, MapPin, CreditCard, CheckCircle, AlertCircle, User, Phone, FileText, Clock, DollarSign } from 'lucide-react';
-
-// API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { getApiBaseUrl } from '../utils/apiConfig';
 
 interface Listing {
   id: number;
@@ -127,6 +125,7 @@ const UnifiedCheckout: React.FC = () => {
     try {
       setLoading(true);
       
+      const API_BASE_URL = getApiBaseUrl();
       const response = await fetch(`${API_BASE_URL}/listings/${listingId}`);
       
       if (!response.ok) {
@@ -158,6 +157,7 @@ const UnifiedCheckout: React.FC = () => {
   const fetchUnavailableDates = async () => {
     if (!listingId) return;
     try {
+      const API_BASE_URL = getApiBaseUrl();
       const response = await fetch(`${API_BASE_URL}/bookings/unavailable/${listingId}`);
       if (response.ok) {
         const data = await response.json();
@@ -297,6 +297,7 @@ const UnifiedCheckout: React.FC = () => {
         };
       }
       
+      const API_BASE_URL = getApiBaseUrl();
       const response = await fetch(`${API_BASE_URL}/bookings/unified`, {
         method: 'POST',
         headers: headers,
@@ -311,9 +312,19 @@ const UnifiedCheckout: React.FC = () => {
       const data = await response.json();
       
       if (data.success) {
-        setBookingId(data.data?.booking?.id || '');
+        setBookingId(data.data?.booking?.id || data.data?.bookingId || '');
         setCurrentStep('confirmation');
         toast.success('Booking created successfully! 🎉');
+        
+        // Emit custom event to refresh dashboards
+        window.dispatchEvent(new CustomEvent('bookingCreated', { 
+          detail: { booking: data.data?.booking || data.data } 
+        }));
+        
+        // Navigate to renter dashboard after 3 seconds
+        setTimeout(() => {
+          navigate('/dashboard/renter');
+        }, 3000);
       } else {
         throw new Error(data.error || 'Failed to create booking');
       }
@@ -359,7 +370,7 @@ const UnifiedCheckout: React.FC = () => {
   if (!listing) {
     return (
       <motion.div 
-        className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 p-4 lg:p-8"
+        className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 p-4 lg:p-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -428,7 +439,7 @@ const UnifiedCheckout: React.FC = () => {
                       <div className="flex flex-col items-center flex-1">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
                           isActive 
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white scale-110' 
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 text-white scale-110' 
                             : isCompleted
                             ? 'bg-green-500 text-white'
                             : 'bg-white/10 text-white/50'
@@ -481,7 +492,7 @@ const UnifiedCheckout: React.FC = () => {
                               value={bookingData.startDate}
                               onChange={(e) => handleInputChange('startDate', e.target.value)}
                               min={new Date().toISOString().split('T')[0]}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                           <div>
@@ -494,7 +505,7 @@ const UnifiedCheckout: React.FC = () => {
                               value={bookingData.endDate}
                               onChange={(e) => handleInputChange('endDate', e.target.value)}
                               min={getMinEndDate()}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                         </div>
@@ -509,7 +520,7 @@ const UnifiedCheckout: React.FC = () => {
                               type="time"
                               value={bookingData.pickupTime}
                               onChange={(e) => handleInputChange('pickupTime', e.target.value)}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                           <div>
@@ -521,7 +532,7 @@ const UnifiedCheckout: React.FC = () => {
                               type="time"
                               value={bookingData.returnTime}
                               onChange={(e) => handleInputChange('returnTime', e.target.value)}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                         </div>
@@ -553,7 +564,7 @@ const UnifiedCheckout: React.FC = () => {
                               value={bookingData.pickupLocation}
                               onChange={(e) => handleInputChange('pickupLocation', e.target.value)}
                               placeholder="Enter pickup address"
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                           <div>
@@ -566,7 +577,7 @@ const UnifiedCheckout: React.FC = () => {
                               value={bookingData.returnLocation}
                               onChange={(e) => handleInputChange('returnLocation', e.target.value)}
                               placeholder="Enter return address"
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                             />
                           </div>
                         </div>
@@ -580,7 +591,7 @@ const UnifiedCheckout: React.FC = () => {
                             onChange={(e) => handleInputChange('specialRequests', e.target.value)}
                             placeholder="Any special requirements, requests, or notes..."
                             rows={4}
-                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
                           />
                         </div>
 
@@ -597,7 +608,7 @@ const UnifiedCheckout: React.FC = () => {
                                 value={bookingData.emergencyContactName}
                                 onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
                                 placeholder="Full name"
-                                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                               />
                             </div>
                             <div>
@@ -610,7 +621,7 @@ const UnifiedCheckout: React.FC = () => {
                                 value={bookingData.emergencyContactPhone}
                                 onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
                                 placeholder="+27 12 345 6789"
-                                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                               />
                             </div>
                           </div>
@@ -683,10 +694,10 @@ const UnifiedCheckout: React.FC = () => {
                             id="agreeToTerms"
                             checked={bookingData.agreeToTerms}
                             onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                            className="mt-1 w-5 h-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500"
+                            className="mt-1 w-5 h-5 rounded border-white/20 bg-white/10 text-green-500 focus:ring-2 focus:ring-green-500"
                           />
                           <label htmlFor="agreeToTerms" className="text-white/80 text-sm">
-                            I agree to the <a href="/terms" className="text-blue-400 hover:underline">Terms and Conditions</a> and <a href="/privacy" className="text-blue-400 hover:underline">Privacy Policy</a>
+                            I agree to the <a href="/terms" className="text-green-400 hover:underline">Terms and Conditions</a> and <a href="/privacy" className="text-green-400 hover:underline">Privacy Policy</a>
                           </label>
                         </div>
                       </div>
@@ -702,7 +713,7 @@ const UnifiedCheckout: React.FC = () => {
                             onClick={() => setPaymentMethod('card')}
                             className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                               paymentMethod === 'card'
-                                ? 'border-blue-500 bg-blue-500/20'
+                                ? 'border-green-500 bg-green-500/20'
                                 : 'border-white/20 bg-white/5 hover:border-white/40'
                             }`}
                           >
@@ -715,7 +726,7 @@ const UnifiedCheckout: React.FC = () => {
                                 </div>
                               </div>
                               {paymentMethod === 'card' && (
-                                <CheckCircle className="w-6 h-6 text-blue-400" />
+                                <CheckCircle className="w-6 h-6 text-green-400" />
                               )}
                             </div>
                           </button>
@@ -724,7 +735,7 @@ const UnifiedCheckout: React.FC = () => {
                             onClick={() => setPaymentMethod('eft')}
                             className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                               paymentMethod === 'eft'
-                                ? 'border-blue-500 bg-blue-500/20'
+                                ? 'border-green-500 bg-green-500/20'
                                 : 'border-white/20 bg-white/5 hover:border-white/40'
                             }`}
                           >
@@ -737,7 +748,7 @@ const UnifiedCheckout: React.FC = () => {
                                 </div>
                               </div>
                               {paymentMethod === 'eft' && (
-                                <CheckCircle className="w-6 h-6 text-blue-400" />
+                                <CheckCircle className="w-6 h-6 text-green-400" />
                               )}
                             </div>
                           </button>

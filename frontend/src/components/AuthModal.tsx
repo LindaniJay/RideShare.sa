@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, Phone, Eye, EyeOff, CheckCircle, AlertCircle, Car } from 'lucide-react';
+import PasswordReset from './PasswordReset';
+import { toast } from 'react-hot-toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,8 +22,8 @@ interface FormErrors {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
-  const { login, signup, loading } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const { login, signup, loading, sendPasswordResetEmail } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +46,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setMode(initialMode);
+      setMode(initialMode === 'login' ? 'login' : initialMode);
       setErrors({});
       setSuccessMessage('');
       setFormData({
@@ -256,13 +258,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
           onClick={(e) => e.stopPropagation()}
         >
           {/* Decorative gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 via-green-500/10 to-green-400/10 pointer-events-none" />
           
           {/* Header */}
           <div className="relative p-6 border-b border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-600 to-green-700 flex items-center justify-center shadow-lg">
                   <Car className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -293,7 +295,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                 disabled={isSubmitting}
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   mode === 'login'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
                     : 'text-white/70 hover:text-white'
                 } disabled:opacity-50`}
               >
@@ -307,7 +309,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                 disabled={isSubmitting}
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   mode === 'signup'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
                     : 'text-white/70 hover:text-white'
                 } disabled:opacity-50`}
               >
@@ -368,7 +370,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       onChange={handleChange}
                       className={`w-full pl-11 pr-4 py-3 bg-white/5 border ${
                         errors.email ? 'border-red-500/50' : 'border-white/20'
-                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                       placeholder="you@example.com"
                     />
                   </div>
@@ -397,7 +399,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       onChange={handleChange}
                       className={`w-full pl-11 pr-11 py-3 bg-white/5 border ${
                         errors.password ? 'border-red-500/50' : 'border-white/20'
-                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -416,11 +418,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                   )}
                 </div>
 
+                {/* Forgot Password Link */}
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setMode('forgot-password')}
+                    className="text-sm text-green-400 hover:text-green-300 transition-colors font-medium"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting || loading}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {isSubmitting || loading ? (
                     <>
@@ -435,6 +448,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                   )}
                 </button>
               </motion.form>
+            )}
+
+            {/* Forgot Password Form */}
+            {mode === 'forgot-password' && (
+              <PasswordReset
+                onReset={async (email: string) => {
+                  try {
+                    await sendPasswordResetEmail(email);
+                    toast.success('Password reset email sent! Check your inbox.');
+                  } catch (error: any) {
+                    toast.error(error.message || 'Failed to send reset email');
+                    throw error;
+                  }
+                }}
+                onCancel={() => setMode('login')}
+                loading={loading}
+              />
             )}
 
             {/* Signup Form */}
@@ -464,7 +494,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                         onChange={handleChange}
                         className={`w-full pl-11 pr-4 py-3 bg-white/5 border ${
                           errors.firstName ? 'border-red-500/50' : 'border-white/20'
-                        } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                        } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                         placeholder="John"
                       />
                     </div>
@@ -491,7 +521,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                         onChange={handleChange}
                         className={`w-full pl-11 pr-4 py-3 bg-white/5 border ${
                           errors.lastName ? 'border-red-500/50' : 'border-white/20'
-                        } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                        } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                         placeholder="Doe"
                       />
                     </div>
@@ -521,7 +551,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       onChange={handleChange}
                       className={`w-full pl-11 pr-4 py-3 bg-white/5 border ${
                         errors.email ? 'border-red-500/50' : 'border-white/20'
-                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                       placeholder="you@example.com"
                     />
                   </div>
@@ -547,7 +577,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       autoComplete="tel"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
                       placeholder="+27 12 345 6789"
                     />
                   </div>
@@ -564,7 +594,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                     required
                     value={formData.role}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all appearance-none cursor-pointer"
                   >
                     <option value="Renter" className="bg-slate-800">Rent vehicles from others</option>
                     <option value="Host" className="bg-slate-800">Rent out my vehicles</option>
@@ -588,7 +618,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       onChange={handleChange}
                       className={`w-full pl-11 pr-11 py-3 bg-white/5 border ${
                         errors.password ? 'border-red-500/50' : 'border-white/20'
-                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                       placeholder="Minimum 6 characters"
                     />
                     <button
@@ -624,7 +654,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                       onChange={handleChange}
                       className={`w-full pl-11 pr-11 py-3 bg-white/5 border ${
                         errors.confirmPassword ? 'border-red-500/50' : 'border-white/20'
-                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                      } rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                       placeholder="Re-enter your password"
                     />
                     <button
@@ -647,7 +677,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                 <button
                   type="submit"
                   disabled={isSubmitting || loading}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {isSubmitting || loading ? (
                     <>

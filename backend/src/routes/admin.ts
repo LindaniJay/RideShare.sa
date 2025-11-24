@@ -38,22 +38,49 @@ router.get('/dashboard-stats', authenticateAdmin, async (req, res) => {
     
     const totalRevenue = (revenueResult as any)?.totalRevenue || 0;
 
+    // Count pending users (handle case where approval_status might not exist)
+    let pendingUsers = 0;
+    try {
+      pendingUsers = await User.count({ where: { approval_status: 'pending' } });
+    } catch (error) {
+      // If approval_status column doesn't exist, default to 0
+      logger.warn('Could not count pending users:', error);
+    }
+
+    // Count pending bookings
+    const pendingBookings = await Booking.count({ where: { status: 'pending' } });
+
+    // Return data in format expected by frontend
     res.json({
       success: true,
       data: {
-        totalUsers,
-        totalListings,
-        totalBookings,
-        pendingListings,
-        activeBookings,
-        totalRevenue: parseFloat(totalRevenue.toString())
+        overview: {
+          totalUsers,
+          pendingUsers,
+          totalVehicles: totalListings,
+          pendingVehicles: pendingListings,
+          totalBookings,
+          pendingBookings,
+          activeBookings,
+          totalRevenue: parseFloat(totalRevenue.toString())
+        },
+        recentActivity: {
+          recentUsers: [],
+          recentVehicles: []
+        }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error fetching dashboard stats:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch dashboard statistics'
+      error: 'Failed to fetch dashboard statistics',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -61,27 +88,72 @@ router.get('/dashboard-stats', authenticateAdmin, async (req, res) => {
 // GET /api/admin/pending-listings - Get all pending listings
 router.get('/pending-listings', authenticateAdmin, async (req, res) => {
   try {
-    const listings = await Listing.findAll({
-      where: { status: 'pending' },
-      include: [{
-        model: User,
-        as: 'host',
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone_number'],
-        required: false
-      }],
-      order: [['createdAt', 'ASC']]
-    });
+    logger.info('Fetching pending listings...');
+    
+    // First, try to get listings without include to see if basic query works
+    let listings;
+    try {
+      listings = await Listing.findAll({
+        where: { status: 'pending' },
+        order: [['createdAt', 'ASC']],
+        raw: false
+      });
+    } catch (queryError: any) {
+      logger.error('Error in basic Listing.findAll:', queryError);
+      throw queryError;
+    }
+
+    logger.info(`Found ${listings.length} pending listings`);
+
+    // Now fetch host information separately if needed
+    const listingsData = await Promise.all(
+      listings.map(async (listing: any) => {
+        const listingJson = listing.toJSON();
+        
+        // Try to get host information if hostId exists
+        if (listing.hostId) {
+          try {
+            const host = await User.findByPk(listing.hostId, {
+              attributes: ['id', 'firstName', 'lastName', 'email', 'phone_number']
+            });
+            if (host) {
+              listingJson.host = {
+                id: host.id,
+                firstName: host.firstName,
+                lastName: host.lastName,
+                email: host.email,
+                phone_number: host.phone_number
+              };
+            }
+          } catch (hostError: any) {
+            logger.warn(`Could not fetch host for listing ${listing.id}:`, hostError.message);
+            listingJson.host = null;
+          }
+        }
+        
+        return listingJson;
+      })
+    );
+
+    logger.info(`Processed ${listingsData.length} listings with host data`);
 
     res.json({
       success: true,
-      data: listings,
-      count: listings.length
+      data: listingsData,
+      count: listingsData.length
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error fetching pending listings:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch pending listings'
+      error: 'Failed to fetch pending listings',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -99,7 +171,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
 
     const { count, rows: users } = await User.findAndCountAll({
       where: whereClause,
-      attributes: ['id', 'uid', 'name', 'email', 'role', 'isVerified', 'createdAt'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isVerified', 'createdAt', 'firebase_uid'],
       limit: Number(limit),
       offset,
       order: [['createdAt', 'DESC']]
@@ -128,11 +200,15 @@ router.get('/users', authenticateAdmin, async (req, res) => {
 router.put('/listings/:id/approve', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, reason } = req.body;
+    
+    logger.info(`Approving listing ${id} with status: ${status || 'approved'}`);
     
     const listing = await Listing.findByPk(id, {
       include: [{
         model: User,
-        as: 'host'
+        as: 'host',
+        required: false
       }]
     });
 
@@ -143,7 +219,8 @@ router.put('/listings/:id/approve', authenticateAdmin, async (req, res) => {
       });
     }
 
-    if (listing.status !== 'pending') {
+    const newStatus = status || 'approved';
+    if (listing.status !== 'pending' && newStatus === 'approved') {
       return res.status(400).json({
         success: false,
         error: 'Listing is not pending approval'
@@ -151,41 +228,79 @@ router.put('/listings/:id/approve', authenticateAdmin, async (req, res) => {
     }
 
     // Update listing status
-    await listing.update({ 
-      status: 'approved',
-      approved: true,
-      is_available: true
-    });
+    const updateData: any = { 
+      status: newStatus,
+      approved: newStatus === 'approved',
+      is_available: newStatus === 'approved'
+    };
+    
+    // If approving, also ensure the listing is marked as available
+    if (newStatus === 'approved') {
+      updateData.approved = true;
+      updateData.is_available = true;
+      updateData.status = 'approved';
+    } else if (newStatus === 'rejected') {
+      updateData.approved = false;
+      updateData.is_available = false;
+      updateData.status = 'rejected';
+      if (reason) {
+        updateData.rejection_reason = reason;
+      }
+    }
+    
+    await listing.update(updateData);
 
-    // Create notification for host
-    await Notification.create({
-      userId: listing.hostId,
-      message: `Your ${listing.make} ${listing.model} listing has been approved!`,
-      type: 'approval',
-      isRead: false
-    });
+    logger.info(`Listing ${id} updated to status: ${newStatus}, approved: ${updateData.approved}, available: ${updateData.is_available}`);
+
+    // Create notification for host (if hostId exists)
+    try {
+      if (listing.hostId) {
+        await Notification.create({
+          userId: listing.hostId,
+          message: newStatus === 'approved' 
+            ? `Your ${listing.make} ${listing.model} listing has been approved!`
+            : `Your ${listing.make} ${listing.model} listing has been rejected. ${reason || ''}`,
+          type: newStatus === 'approved' ? 'listing_approved' : 'listing_rejected',
+          isRead: false
+        });
+      }
+    } catch (notifError: any) {
+      logger.warn('Could not create notification:', notifError?.message);
+      // Don't fail the request if notification creation fails
+    }
 
     // Emit notification to host
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user-${listing.hostId}`).emit('listing-approved', {
-        id: listing.id,
-        make: listing.make,
-        model: listing.model,
-        message: 'Your listing has been approved!'
-      });
+    try {
+      const io = req.app.get('io');
+      if (io && listing.hostId) {
+        io.to(`user-${listing.hostId}`).emit('listing-approved', {
+          id: listing.id,
+          make: listing.make,
+          model: listing.model,
+          message: newStatus === 'approved' ? 'Your listing has been approved!' : 'Your listing has been rejected.',
+          status: newStatus
+        });
+      }
+    } catch (ioError: any) {
+      logger.warn('Could not emit socket notification:', ioError?.message);
     }
 
     res.json({
       success: true,
       data: listing,
-      message: 'Listing approved successfully'
+      message: `Listing ${newStatus} successfully`
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error approving listing:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to approve listing'
+      error: 'Failed to approve listing',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

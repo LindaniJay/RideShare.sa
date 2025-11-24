@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { apiClient } from '../api/client';
 import { 
   CheckCircle, 
   XCircle, 
@@ -61,27 +60,17 @@ interface User {
   last_login_at?: string;
 }
 
-interface User {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  role: 'renter' | 'host' | 'admin';
-  is_verified: boolean;
-  approval_status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  last_login_at?: string;
-}
-
 interface DashboardStats {
   totalUsers: number;
   totalHosts: number;
+  totalListings?: number;
   totalVehicles: number;
+  pendingListings?: number;
   pendingVehicles: number;
   approvedVehicles: number;
   rejectedVehicles: number;
   totalBookings: number;
+  pendingBookings?: number;
   activeBookings: number;
   totalRevenue: number;
   monthlyRevenue: number;
@@ -89,6 +78,19 @@ interface DashboardStats {
   userGrowthRate: number;
   vehicleGrowthRate: number;
   bookingGrowthRate: number;
+}
+
+interface AdminStatsOverview {
+  totalUsers?: number;
+  pendingUsers?: number;
+  totalListings?: number;
+  totalVehicles?: number;
+  pendingVehicles?: number;
+  pendingListings?: number;
+  totalBookings?: number;
+  pendingBookings?: number;
+  activeBookings?: number;
+  totalRevenue?: number;
 }
 
 interface AdminDashboardProps {
@@ -106,11 +108,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalHosts: 0,
+    totalListings: 0,
     totalVehicles: 0,
+    pendingListings: 0,
     pendingVehicles: 0,
     approvedVehicles: 0,
     rejectedVehicles: 0,
     totalBookings: 0,
+    pendingBookings: 0,
     activeBookings: 0,
     totalRevenue: 0,
     monthlyRevenue: 0,
@@ -135,64 +140,92 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
     try {
       setRefreshing(true);
       
-      // Fetch vehicles - try multiple endpoints
+      // Fetch pending listings for approval
       try {
-        const vehiclesResponse = await apiClient.get('/admin/vehicles/pending');
-        setVehicles(vehiclesResponse.data.vehicles || vehiclesResponse.data.data || []);
-      } catch (error) {
-        console.error('Error fetching vehicles:', error);
+        const { AdminService } = await import('../services/adminService');
+        const listingsData = await AdminService.getPendingListings();
+        console.log('Pending listings data:', listingsData);
+        
+        if (listingsData && Array.isArray(listingsData) && listingsData.length > 0) {
+          // Transform listings to vehicles format
+          const transformedVehicles = listingsData.map((listing: any) => ({
+            id: listing.id.toString(),
+            title: `${listing.make} ${listing.model} ${listing.year}`,
+            make: listing.make,
+            model: listing.model,
+            year: listing.year,
+            vehicle_type: listing.vehicle_type || listing.type || 'car',
+            price_per_day: listing.price_per_day || listing.pricePerDay || 0,
+            location: listing.location || { city: listing.city || 'Unknown' },
+            status: listing.status || 'pending',
+            rejection_reason: listing.rejection_reason,
+            images: listing.images ? (Array.isArray(listing.images) ? listing.images : [listing.images]) : (listing.image ? [listing.image] : []),
+            features: listing.features ? (Array.isArray(listing.features) ? listing.features : JSON.parse(listing.features || '[]')) : [],
+            host: listing.host ? {
+              id: listing.host.id.toString(),
+              first_name: listing.host.firstName || listing.host.first_name,
+              last_name: listing.host.lastName || listing.host.last_name,
+              email: listing.host.email,
+              phone: listing.host.phone_number || listing.host.phone,
+              is_verified: listing.host.isVerified || listing.host.is_verified || false
+            } : {
+              id: '0',
+              first_name: 'Unknown',
+              last_name: 'Host',
+              email: 'unknown@example.com',
+              is_verified: false
+            },
+            created_at: listing.createdAt || listing.created_at || new Date().toISOString(),
+            updated_at: listing.updatedAt || listing.updated_at
+          }));
+          setVehicles(transformedVehicles);
+          console.log(`✅ Loaded ${transformedVehicles.length} pending vehicles`);
+        } else {
+          console.log('No pending listings found or empty array');
+          setVehicles([]);
+        }
+      } catch (error: any) {
+        console.error('Error fetching pending listings:', error);
+        console.error('Error details:', error);
+        toast.error(error.message || 'Failed to load pending listings');
+        setVehicles([]); // Set empty array on error
       }
 
-      // Fetch dashboard stats - try multiple endpoints
+      // Fetch dashboard stats using AdminService
       try {
-        const statsResponse = await apiClient.get('/admin/dashboard-stats');
-        const statsData = statsResponse.data;
-        const statsInfo = statsData.stats || statsData.data;
+        const { AdminService } = await import('../services/adminService');
+        const statsInfo = await AdminService.getStats();
         if (statsInfo) {
+          // Handle both response structures
+          const overview: AdminStatsOverview = statsInfo.overview || statsInfo || {};
+          const totalListings = overview.totalListings ?? 0;
+          const pendingListings = overview.pendingListings ?? 0;
+          const totalBookings = overview.totalBookings ?? 0;
+          const totalRevenue = overview.totalRevenue ?? 0;
           setStats({
-            totalUsers: statsInfo.users?.total || statsInfo.totalUsers || 0,
-            totalHosts: statsInfo.users?.hosts || statsInfo.totalHosts || 0,
-            totalVehicles: statsInfo.vehicles?.total || statsInfo.totalVehicles || 0,
-            pendingVehicles: statsInfo.vehicles?.pending || statsInfo.pendingVehicles || 0,
-            approvedVehicles: statsInfo.vehicles?.approved || statsInfo.approvedVehicles || 0,
+            totalUsers: overview.totalUsers || 0,
+            totalHosts: 0, // Will calculate from users
+            totalListings,
+            totalVehicles: totalListings || overview.totalVehicles || 0,
+            pendingListings,
+            pendingVehicles: pendingListings || overview.pendingVehicles || 0,
+            approvedVehicles: 0, // Calculate from vehicles array
             rejectedVehicles: 0, // Calculate from vehicles array
-            totalBookings: statsInfo.bookings?.total || statsInfo.totalBookings || 0,
-            activeBookings: statsInfo.bookings?.active || statsInfo.activeBookings || 0,
-            totalRevenue: statsInfo.revenue?.total || statsInfo.totalRevenue || 0,
-            monthlyRevenue: statsInfo.revenue?.monthly || 0,
-            averageBookingValue: 0, // Calculate
-            userGrowthRate: statsInfo.growth?.users || 0,
-            vehicleGrowthRate: 0, // Calculate
-            bookingGrowthRate: statsInfo.growth?.bookings || 0
+            totalBookings,
+            activeBookings: overview.activeBookings || overview.pendingBookings || 0,
+            totalRevenue,
+            monthlyRevenue: 0, // Calculate from revenue data
+            averageBookingValue: totalBookings > 0 && totalRevenue > 0 
+              ? totalRevenue / totalBookings 
+              : 0,
+            userGrowthRate: 0, // Would need historical data
+            vehicleGrowthRate: 0, // Would need historical data
+            bookingGrowthRate: 0 // Would need historical data
           });
         }
-      } catch (error) {
-        console.log('Dashboard stats endpoint failed, trying general stats endpoint');
-        try {
-          const fallbackResponse = await apiClient.get('/admin/stats');
-          const fallbackData = fallbackResponse.data;
-          const fallbackStats = fallbackData.data;
-          if (fallbackStats) {
-            setStats({
-              totalUsers: fallbackStats.overview?.totalUsers || 0,
-              totalHosts: 0, // Calculate
-              totalVehicles: fallbackStats.overview?.totalListings || 0,
-              pendingVehicles: fallbackStats.overview?.pendingListings || 0,
-              approvedVehicles: 0, // Calculate
-              rejectedVehicles: 0, // Calculate
-              totalBookings: fallbackStats.overview?.totalBookings || 0,
-              activeBookings: fallbackStats.overview?.activeBookings || 0,
-              totalRevenue: fallbackStats.revenue?.total || 0,
-              monthlyRevenue: fallbackStats.revenue?.monthly || 0,
-              averageBookingValue: 0,
-              userGrowthRate: fallbackStats.growth?.users || 0,
-              vehicleGrowthRate: 0,
-              bookingGrowthRate: fallbackStats.growth?.bookings || 0
-            });
-          }
-        } catch (fallbackError) {
-          console.error('Error fetching stats:', fallbackError);
-        }
+      } catch (error: any) {
+        console.error('Error fetching admin stats:', error);
+        toast.error(error.message || 'Failed to load dashboard statistics');
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -214,27 +247,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
   // Handle vehicle approval/rejection
   const handleVehicleAction = async (vehicleId: string, action: 'approve' | 'reject', reason?: string) => {
     try {
-      // Try multiple approval endpoints
-      let response;
-      try {
-        response = await apiClient.patch(`/admin/vehicles/${vehicleId}/approve`, {
-          status: action === 'approve' ? 'approved' : 'rejected',
-          reason: reason || undefined
-        });
-      } catch (error) {
-        // Fallback to alternative endpoint
-        response = await apiClient.patch(`/vehicles/${vehicleId}/approve`, {
-          status: action === 'approve' ? 'approved' : 'rejected',
-          reason: reason || undefined
-        });
-      }
+      const { AdminService } = await import('../services/adminService');
+      
+      // Use AdminService to approve listing
+      const response = await AdminService.approveListing(
+        parseInt(vehicleId), 
+        action === 'approve' ? 'approved' : 'rejected',
+        reason
+      );
 
-      if (response.status === 200) {
-        setVehicles(prev => prev.map(v => 
-          v.id === vehicleId 
-            ? { ...v, status: action === 'approve' ? 'approved' : 'rejected', rejection_reason: reason }
-            : v
-        ));
+      if (response.success !== false) {
+        setVehicles(prev => prev.filter(v => v.id !== vehicleId));
         
         setShowApprovalModal(false);
         setSelectedVehicle(null);
@@ -243,9 +266,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
         toast.success(`Vehicle ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
         fetchDashboardData(); // Refresh stats
       } else {
-        toast.error(response.data?.error || 'Failed to update vehicle status');
+        toast.error(response.error || 'Failed to update vehicle status');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating vehicle:', error);
       toast.error('Error updating vehicle status');
     }

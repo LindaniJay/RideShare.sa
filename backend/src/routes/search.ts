@@ -22,7 +22,9 @@ router.get('/', async (req, res) => {
     } = req.query;
     
     const whereClause: any = { 
-      status: 'approved' 
+      status: 'approved',
+      approved: true,
+      is_available: true
     };
     
     // Apply filters
@@ -90,6 +92,7 @@ router.get('/', async (req, res) => {
       EnhancedVehicle.findAll({
         where: {
           listingStatus: 'approved',
+          is_available: true,
           ...(whereClause.make && { make: { [Op.iLike]: whereClause.make[Op.iLike] } }),
           ...(whereClause.fuelType && { fuel_type: whereClause.fuelType }),
           ...(whereClause.transmission && { transmission: whereClause.transmission }),

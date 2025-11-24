@@ -18,6 +18,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Search = lazy(() => import('./pages/Search'));
 const VehicleDetail = lazy(() => import('./pages/VehicleDetail'));
 const UnifiedCheckout = lazy(() => import('./pages/UnifiedCheckout'));
@@ -118,7 +119,8 @@ function App() {
               <div className="App">
                 <Suspense fallback={<FullPageLoading text="Loading RideShare SA..." />}>
                       <Routes>
-                        <Route path="/" element={<Layout><Home /></Layout>} />
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/home" element={<Layout><Home /></Layout>} />
                         <Route path="/search" element={<Layout><Search /></Layout>} />
                         <Route path="/vehicle/:id" element={<Layout><VehicleDetail /></Layout>} />
                         <Route path="/checkout/:listingId" element={

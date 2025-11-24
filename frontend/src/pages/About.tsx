@@ -78,10 +78,10 @@ const About: React.FC = () => {
             <div className="max-w-7xl mx-auto">
               {/* Mission Statement */}
               <div className="mb-20">
-                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
+                <div className="bg-gradient-to-r from-green-600/20 to-green-700/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
                   <div className="text-center mb-8">
                     <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 drop-shadow-lg">Our Mission</h2>
-                    <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto rounded-full"></div>
+                    <div className="w-24 h-1 bg-gradient-to-r from-green-400 to-green-500 mx-auto rounded-full"></div>
                   </div>
                   <div className="max-w-4xl mx-auto">
                     <blockquote className="text-2xl md:text-3xl font-medium text-white text-center leading-relaxed mb-8 italic">
@@ -136,10 +136,10 @@ const About: React.FC = () => {
               </div>
 
               {/* Vision Statement */}
-              <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
+              <div className="bg-gradient-to-r from-green-600/20 to-green-700/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
                 <div className="text-center mb-8">
                   <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 drop-shadow-lg">Our Vision</h2>
-                  <div className="w-24 h-1 bg-gradient-to-r from-green-400 to-blue-400 mx-auto rounded-full"></div>
+                  <div className="w-24 h-1 bg-gradient-to-r from-green-400 to-green-500 mx-auto rounded-full"></div>
                 </div>
                 <div className="max-w-4xl mx-auto">
                   <blockquote className="text-2xl md:text-3xl font-medium text-white text-center leading-relaxed mb-8 italic">
@@ -170,10 +170,10 @@ const About: React.FC = () => {
           {/* CEO Message Section */}
           <div className="py-20 px-4">
             <div className="max-w-7xl mx-auto">
-              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
+              <div className="bg-gradient-to-r from-green-600/20 to-green-700/20 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/20">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
                   <div className="lg:col-span-1 text-center lg:text-left">
-                    <div className="w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto lg:mx-0 mb-6">
+                    <div className="w-32 h-32 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto lg:mx-0 mb-6">
                       <span className="text-4xl">👨‍💼</span>
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-2">Piwe Toni</h3>
@@ -290,7 +290,7 @@ const About: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="text-center bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-white/20">
-                  <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-3xl">👨‍💼</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Leadership Team</h3>
@@ -298,7 +298,7 @@ const About: React.FC = () => {
                 </div>
                 
                 <div className="text-center bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-white/20">
-                  <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-3xl">👩‍💻</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Tech Team</h3>
@@ -306,7 +306,7 @@ const About: React.FC = () => {
                 </div>
                 
                 <div className="text-center bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-white/20">
-                  <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-700 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-3xl">🤝</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Community Team</h3>
@@ -387,7 +387,7 @@ const About: React.FC = () => {
                 </Link>
                 <Link 
                   to="/register" 
-                  className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                  className="bg-white text-green-600 px-8 py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                 >
                   Become a Host
                 </Link>

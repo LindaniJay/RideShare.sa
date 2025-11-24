@@ -43,21 +43,40 @@ export const authenticateAdmin = async (req: AdminRequest, res: Response, next: 
       });
     }
     
-    // Find user in database
-    const user = await User.findOne({ where: { firebase_uid: decodedToken.uid } });
+    // Find user in database by Firebase UID
+    let user = await User.findOne({ where: { firebase_uid: decodedToken.uid } });
+    
+    // If not found by Firebase UID, try to find by email
+    if (!user && decodedToken.email) {
+      user = await User.findOne({ where: { email: decodedToken.email } });
+      
+      // If found by email, update Firebase UID
+      if (user) {
+        logger.info(`Updating Firebase UID for user ${user.email}`);
+        await user.update({ firebase_uid: decodedToken.uid });
+      }
+    }
     
     if (!user) {
+      logger.warn(`Admin authentication failed: User not found in database (Firebase UID: ${decodedToken.uid}, Email: ${decodedToken.email})`);
       return res.status(404).json({
         success: false,
-        error: 'Admin user not found'
+        error: 'Admin user not found in database',
+        details: 'User needs to be registered in the system. Please contact support or run the fix-admin-user script.',
+        firebaseUid: decodedToken.uid,
+        email: decodedToken.email
       });
     }
 
     // Verify user is admin in database (unified system)
     if (user.role !== 'admin') {
+      logger.warn(`Admin authentication failed: User ${user.email} does not have admin role (current role: ${user.role})`);
       return res.status(403).json({
         success: false,
-        error: 'Admin privileges required'
+        error: 'Admin privileges required',
+        details: `User role is '${user.role}' but 'admin' is required. Run: npm run fix:admin ${user.email}`,
+        currentRole: user.role,
+        requiredRole: 'admin'
       });
     }
 

@@ -11,7 +11,11 @@ router.get('/', async (req, res) => {
     const { status = 'approved', city, make, priceRange } = req.query;
     const { Op } = require('sequelize');
     
-    const whereClause: any = { status };
+    const whereClause: any = { 
+      status: 'approved',
+      approved: true,
+      is_available: true
+    };
     
     if (city) {
       whereClause.city = { [Op.iLike]: `%${city}%` };

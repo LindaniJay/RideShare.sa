@@ -49,10 +49,19 @@ export interface AdminVehicle {
 }
 
 export class AdminService {
-  // Use Vite proxy in dev, full URL in production
-  private static baseUrl = import.meta.env.DEV 
-    ? '/api/admin'  // Uses Vite proxy to http://localhost:5001/api/admin
-    : `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/admin`;
+  // Use getApiBaseUrl for consistent API URL handling
+  private static getBaseUrl(): string {
+    if (import.meta.env.DEV) {
+      return '/api/admin';  // Uses Vite proxy to http://localhost:5001/api/admin
+    }
+    // Dynamic import to avoid circular dependency
+    const apiConfig = require('../utils/apiConfig');
+    return `${apiConfig.getApiBaseUrl()}/admin`;
+  }
+  
+  private static get baseUrl(): string {
+    return this.getBaseUrl();
+  }
 
   private static async getAuthToken(): Promise<string> {
     try {
@@ -86,7 +95,8 @@ export class AdminService {
       }
 
       const data = await response.json();
-      return data.stats;
+      // Backend returns { success: true, data: { ...stats } }
+      return data.data || data.stats || data;
     } catch (error) {
       console.error('Error fetching admin stats:', error);
       throw error;
@@ -148,6 +158,44 @@ export class AdminService {
     }
   }
 
+  static async getPendingListings() {
+    try {
+      const token = await this.getAuthToken();
+      console.log('Fetching pending listings from:', `${this.baseUrl}/pending-listings`);
+      const response = await fetch(`${this.baseUrl}/pending-listings`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Pending listings response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch pending listings:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch pending listings');
+      }
+
+      const data = await response.json();
+      console.log('Pending listings response data:', data);
+      return data.data || data || [];
+    } catch (error: any) {
+      console.error('Error fetching pending listings:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
   static async getVehicles(page = 1, limit = 10, status?: string) {
     try {
       const token = await this.getAuthToken();
@@ -171,6 +219,33 @@ export class AdminService {
       return await response.json();
     } catch (error) {
       console.error('Error fetching vehicles:', error);
+      throw error;
+    }
+  }
+
+  static async approveListing(listingId: number, status: 'approved' | 'rejected', reason?: string) {
+    try {
+      const token = await this.getAuthToken();
+      const response = await fetch(`${this.baseUrl}/listings/${listingId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+          reason
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update listing status');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating listing:', error);
       throw error;
     }
   }

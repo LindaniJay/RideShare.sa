@@ -6,12 +6,25 @@ import SEO from '../components/SEO';
 import GlassCard from '../components/GlassCard';
 import GlassButton from '../components/GlassButton';
 import { usePageTracking } from '../hooks/useAnalytics';
+import { useAuth } from '../context/AuthContext';
 import { heroVariants, containerVariants, itemVariants } from '../utils/motionVariants';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   // Track page views
   usePageTracking();
+
+  // Handle navigation to protected routes
+  const handleProtectedNavigation = (path: string) => {
+    if (!user) {
+      // Store the intended destination and redirect to login
+      sessionStorage.setItem('redirect', path);
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+  };
 
   return (
     <div className="page-background">
@@ -111,7 +124,7 @@ const Home: React.FC = () => {
                   animated
                   className="text-center p-8"
                   icon={
-                    <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                       <span className="text-3xl font-bold text-white">S</span>
                     </div>
                   }
@@ -128,7 +141,7 @@ const Home: React.FC = () => {
                   animated
                   className="text-center p-8"
                   icon={
-                    <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                       <span className="text-3xl">📅</span>
                     </div>
                   }
@@ -145,7 +158,7 @@ const Home: React.FC = () => {
                   animated
                   className="text-center p-8"
                   icon={
-                    <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-700 rounded-full flex items-center justify-center mx-auto mb-6">
                       <span className="text-3xl font-bold text-white">D</span>
                     </div>
                   }
@@ -260,7 +273,7 @@ const Home: React.FC = () => {
                   onClick={() => navigate('/search?type=bakkie')}
                 >
                   <div className="aspect-w-16 aspect-h-9 mb-4">
-                    <div className="w-full h-48 bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl flex items-center justify-center relative overflow-hidden">
+                    <div className="w-full h-48 bg-gradient-to-br from-green-600 to-green-700 rounded-xl flex items-center justify-center relative overflow-hidden">
                       <img 
                         src="https://images.unsplash.com/photo-1558618047-7c0a4c4a3b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
                         alt="Toyota Hilux Bakkie" 
@@ -429,7 +442,7 @@ const Home: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <GlassButton
-                onClick={() => navigate('/dashboard/host')}
+                onClick={() => handleProtectedNavigation('/dashboard/host')}
                 variant="primary"
                 size="lg"
                 icon={<Icon name="Plus" size="md" />}

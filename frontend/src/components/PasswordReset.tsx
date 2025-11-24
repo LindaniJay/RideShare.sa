@@ -57,7 +57,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({
                 setStep('email');
                 setEmail('');
               }}
-              className="w-full px-3 py-2 bg-blue-500/20 text-blue-200 rounded-md hover:bg-blue-500/30 transition-colors text-sm"
+              className="w-full px-3 py-2 bg-green-500/20 text-green-200 rounded-md hover:bg-green-500/30 transition-colors text-sm"
             >
               Try Different Email
             </button>
@@ -74,10 +74,10 @@ const PasswordReset: React.FC<PasswordResetProps> = ({
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 max-w-sm w-full mx-4">
+    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 w-full">
       <div className="text-center mb-4">
-        <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-          <Icon name="Lock" size="md" className="text-blue-400" />
+        <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Icon name="Lock" size="md" className="text-green-400" />
         </div>
         <h2 className="text-xl font-bold text-white mb-2">Forgot Password?</h2>
         <p className="text-white/70 text-sm">
@@ -95,7 +95,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email address"
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-400 transition-all text-sm"
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-400 transition-all text-sm"
             required
           />
         </div>
@@ -111,7 +111,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-3 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="w-full px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-md font-medium hover:from-green-500 hover:to-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {loading ? (
               <div className="flex items-center justify-center space-x-2">
