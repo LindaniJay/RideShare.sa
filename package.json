@@ -4,6 +4,7 @@
   "description": "RideShare SA Mobile App - Standalone React Native Application",
   "main": "index.js",
   "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build:vercel && node -e \"const fs=require('fs');const path=require('path');const root=process.cwd();const dist=path.join(root,'frontend','dist');const src=path.join(root,'marketing.html');const dest=path.join(dist,'marketing.html');if(fs.existsSync(src)){fs.mkdirSync(dist,{recursive:true});fs.copyFileSync(src,dest);}\"",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",

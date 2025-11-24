@@ -6,6 +6,18 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/marketing.html"
+    },
+    {
+      "source": "/(marketing|landing)",
+      "destination": "/marketing.html"
+    },
+    {
+      "source": "/app/(.*)",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
