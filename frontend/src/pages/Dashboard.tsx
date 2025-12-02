@@ -30,6 +30,8 @@ const Dashboard: React.FC = () => {
 
   // Initialize active role based on current URL or user role
   React.useEffect(() => {
+    if (!user) return; // Wait for user to load
+    
     if (isAdmin) {
       const path = location.pathname;
       if (path.includes('/admin')) {
@@ -48,7 +50,7 @@ const Dashboard: React.FC = () => {
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [location.pathname, isAdmin, userRole, navigate]);
+  }, [location.pathname, isAdmin, userRole, navigate, user]);
 
   // Prevent rendering if user is not loaded yet
   if (!user) {

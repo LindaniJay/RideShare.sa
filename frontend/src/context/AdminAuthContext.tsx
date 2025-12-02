@@ -44,9 +44,9 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
         console.log('AdminAuthContext: Navigating to admin dashboard');
         navigate('/admin-dashboard', { replace: true });
       } else if (!admin && currentPath.startsWith('/admin')) {
-        // Admin is logged out - navigate to home page only if on admin pages
-        console.log('AdminAuthContext: Admin logged out, navigating to home');
-        navigate('/', { replace: true });
+        // Admin is logged out - navigate to platform home page only if on admin pages
+        console.log('AdminAuthContext: Admin logged out, navigating to platform home');
+        navigate('/home', { replace: true });
       }
     });
 

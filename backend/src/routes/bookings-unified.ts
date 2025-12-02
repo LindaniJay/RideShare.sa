@@ -7,6 +7,7 @@ import fs from 'fs';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { Booking } from '../models/Booking';
 import { Listing } from '../models/Listing';
+import { EnhancedVehicle } from '../models/EnhancedVehicle';
 import { User } from '../models/User';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -162,8 +163,8 @@ router.post('/unified',
       });
     }
 
-    // Find and validate vehicle/listing
-    const vehicle = await Listing.findByPk(validatedData.vehicleId, {
+    // Find and validate vehicle/listing - check both Listing and EnhancedVehicle models
+    let vehicle = await Listing.findByPk(validatedData.vehicleId, {
       include: [
         {
           model: User,
@@ -174,20 +175,57 @@ router.post('/unified',
       transaction
     });
 
-    if (!vehicle) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        error: 'Vehicle not found'
-      });
-    }
+    let vehicleType = 'listing';
+    let hostId: string;
+    let pricePerDay: number;
 
-    if (vehicle.status !== 'approved') {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        error: 'Vehicle is not available for booking'
+    // If not found in Listing, check EnhancedVehicle
+    if (!vehicle) {
+      const enhancedVehicle = await EnhancedVehicle.findByPk(validatedData.vehicleId, {
+        include: [
+          {
+            model: User,
+            as: 'host',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }
+        ],
+        transaction
       });
+
+      if (!enhancedVehicle) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          error: 'Vehicle not found'
+        });
+      }
+
+      // Check if enhanced vehicle is approved
+      if (enhancedVehicle.listingStatus !== 'approved') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          error: 'Vehicle is not available for booking'
+        });
+      }
+
+      vehicleType = 'enhanced';
+      hostId = enhancedVehicle.hostId;
+      pricePerDay = enhancedVehicle.pricePerDay || 0;
+      // Store enhanced vehicle for later use
+      vehicle = enhancedVehicle as any;
+    } else {
+      // Check if listing is approved
+      if (vehicle.status !== 'approved') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          error: 'Vehicle is not available for booking'
+        });
+      }
+
+      hostId = vehicle.hostId;
+      pricePerDay = vehicle.pricePerDay || 0;
     }
 
     // Check for date conflicts
@@ -223,7 +261,7 @@ router.post('/unified',
 
     // Calculate pricing if not provided
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const basePrice = vehicle.pricePerDay * days;
+    const basePrice = pricePerDay * days;
     const serviceFee = Math.round(basePrice * 0.1); // 10% service fee
     const insuranceFee = Math.round(basePrice * 0.05); // 5% insurance fee
     const totalPrice = validatedData.totalPrice || (basePrice + serviceFee + insuranceFee);
@@ -232,7 +270,7 @@ router.post('/unified',
     const booking = await Booking.create({
       bookingId: uuidv4(),
       renterId: userId, // UUID, not parseInt
-      hostId: vehicle.hostId, // UUID, not parseInt
+      hostId: hostId, // UUID from vehicle
       vehicleId: parseInt(validatedData.vehicleId),
       listingId: parseInt(validatedData.vehicleId),
       startDate: startDate,
@@ -247,11 +285,25 @@ router.post('/unified',
     }, { transaction });
 
     // Fetch the created booking with relations
+    // Include both Listing and EnhancedVehicle models
     const createdBooking = await Booking.findByPk(booking.id, {
       include: [
         {
           model: Listing,
           as: 'listing',
+          required: false, // Make it optional since it might be an EnhancedVehicle
+          include: [
+            {
+              model: User,
+              as: 'host',
+              attributes: ['id', 'firstName', 'lastName', 'email']
+            }
+          ]
+        },
+        {
+          model: EnhancedVehicle,
+          as: 'vehicle',
+          required: false, // Make it optional since it might be a Listing
           include: [
             {
               model: User,
@@ -268,17 +320,45 @@ router.post('/unified',
       ],
       transaction
     });
+    
+    // Attach the appropriate vehicle data to the listing field for consistency
+    if (createdBooking) {
+      if (vehicleType === 'enhanced' && createdBooking.vehicle) {
+        // For EnhancedVehicle, attach it as listing for API consistency
+        (createdBooking as any).listing = createdBooking.vehicle;
+      } else if (!createdBooking.listing && vehicleType === 'enhanced') {
+        // Fallback: fetch EnhancedVehicle separately if not included
+        const enhancedVehicle = await EnhancedVehicle.findByPk(validatedData.vehicleId, {
+          include: [
+            {
+              model: User,
+              as: 'host',
+              attributes: ['id', 'firstName', 'lastName', 'email']
+            }
+          ],
+          transaction
+        });
+        
+        if (enhancedVehicle) {
+          (createdBooking as any).listing = enhancedVehicle;
+        }
+      }
+    }
 
     await transaction.commit();
 
     // Emit real-time notification to host
     const io = req.app.get('io');
-    if (io && vehicle.hostId) {
-      io.to(`user-${vehicle.hostId}`).emit('new-booking', {
+    if (io && hostId) {
+      const vehicleTitle = vehicleType === 'enhanced' 
+        ? `${(vehicle as any).make} ${(vehicle as any).model}`
+        : `${(vehicle as any).make} ${(vehicle as any).model}`;
+        
+      io.to(`user-${hostId}`).emit('new-booking', {
         id: booking.id,
         booking_id: booking.bookingId,
         renterName: `${req.user!.firstName || ''} ${req.user!.lastName || ''}`.trim() || 'User',
-        vehicleTitle: `${vehicle.make} ${vehicle.model}`,
+        vehicleTitle: vehicleTitle,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         totalPrice: totalPrice,

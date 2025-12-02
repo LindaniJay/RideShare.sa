@@ -55,8 +55,12 @@ if (isTest) {
         // Supabase and production PostgreSQL require SSL
         ssl: (isProduction || isSupabase) ? {
           require: true,
-          rejectUnauthorized: false
-        } : false
+          rejectUnauthorized: false,
+          // Additional SSL options for better compatibility
+          sslmode: 'require'
+        } : false,
+        // Connection timeout for Supabase
+        connectTimeout: 10000
       },
       retry: {
         match: [

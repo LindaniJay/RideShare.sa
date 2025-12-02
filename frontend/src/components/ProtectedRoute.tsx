@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!user) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/home" state={{ from: location }} replace />;
   }
 
   if (requiredRole && user.role?.toLowerCase() !== requiredRole.toLowerCase()) {

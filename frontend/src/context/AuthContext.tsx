@@ -46,37 +46,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
       }
       
+      // Get current pathname at the time of auth state change
+      const currentPath = window.location.pathname;
+      
       if (user) {
         // User is logged in - check role and navigate accordingly
         const userRole = user.role?.toLowerCase();
-        console.log('AuthContext: User logged in', { role: userRole, pathname: location.pathname });
+        console.log('AuthContext: User logged in', { role: userRole, pathname: currentPath });
         
         if (userRole === 'admin') {
           console.log('AuthContext: Admin user detected, role:', user.role);
           // Navigate to admin dashboard if not already on an admin page
-          // Allow navigation from home page too
-          if (!location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin-dashboard')) {
+          if (!currentPath.startsWith('/admin') && !currentPath.startsWith('/admin-dashboard')) {
             console.log('AuthContext: Navigating admin user to admin dashboard');
             navigate('/admin-dashboard', { replace: true });
           }
-        } else if (!location.pathname.startsWith('/admin') && !location.pathname.includes('admin')) {
-          console.log('AuthContext: Regular user detected, navigating to dashboard');
-          // Only navigate to dashboard if not already on dashboard or home page
-          if (!location.pathname.startsWith('/dashboard') && location.pathname !== '/') {
+        } else if (!currentPath.startsWith('/admin') && !currentPath.includes('admin')) {
+          // Only navigate if not already on dashboard, home, or other valid routes
+          const validRoutes = ['/dashboard', '/home', '/search', '/vehicle', '/checkout', '/about', '/contact', '/faq', '/pricing'];
+          const isOnValidRoute = validRoutes.some(route => currentPath.startsWith(route)) || currentPath === '/';
+          
+          if (!isOnValidRoute && !currentPath.startsWith('/dashboard')) {
+            console.log('AuthContext: Regular user detected, navigating to dashboard');
             navigate('/dashboard', { replace: true });
           }
         }
       } else {
-        // User is logged out - navigate to home page only if not already there
-        console.log('AuthContext: User logged out, navigating to home');
-        if (location.pathname !== '/') {
-          navigate('/', { replace: true });
+        // User is logged out - navigate to platform home page only if not already there
+        // Don't redirect if on public pages (landing, login, signup)
+        const publicRoutes = ['/', '/login', '/signup', '/register', '/home'];
+        const isOnPublicRoute = publicRoutes.includes(currentPath) || currentPath.startsWith('/home');
+        
+        if (!isOnPublicRoute) {
+          console.log('AuthContext: User logged out, navigating to platform home');
+          navigate('/home', { replace: true });
         }
       }
     });
 
     return unsubscribe;
-  }, [navigate, location.pathname, initialLoad]);
+  }, [navigate, initialLoad]);
 
   const signup = async (email: string, password: string, firstName: string, lastName: string, phone: string, role: 'Renter' | 'Host') => {
     // Don't set loading for auth operations to avoid UI flicker

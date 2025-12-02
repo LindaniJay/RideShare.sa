@@ -80,6 +80,7 @@ export const getSupabaseConnectionString = (): string | null => {
   if (env.DATABASE_URL && (
     env.DATABASE_URL.includes('supabase.co') ||
     env.DATABASE_URL.includes('@db.') ||
+    env.DATABASE_URL.includes('pooler.supabase.com') ||
     env.DATABASE_URL.startsWith('postgresql://postgres')
   )) {
     return env.DATABASE_URL;
@@ -92,9 +93,22 @@ export const getSupabaseConnectionString = (): string | null => {
     const urlMatch = env.SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/);
     if (urlMatch && urlMatch[1]) {
       const projectRef = urlMatch[1];
-      // Supabase connection string format:
-      // postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres
-      return `postgresql://postgres:${encodeURIComponent(env.SUPABASE_DB_PASSWORD)}@db.${projectRef}.supabase.co:5432/postgres`;
+      
+      // Try pooler connection first (more reliable for serverless)
+      // Format: postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+      // Fallback to direct connection if pooler doesn't work
+      const regions = ['eu-west-1', 'us-east-1', 'sa-east-1', 'ap-southeast-1'];
+      
+      // Use pooler connection (port 6543) for better connection management
+      // Default to eu-west-1, but can be overridden via env
+      const region = process.env.SUPABASE_REGION || 'eu-west-1';
+      const poolerUrl = `postgresql://postgres.${projectRef}:${encodeURIComponent(env.SUPABASE_DB_PASSWORD)}@aws-0-${region}.pooler.supabase.com:6543/postgres?pgbouncer=true`;
+      
+      // Also provide direct connection as fallback (port 5432)
+      const directUrl = `postgresql://postgres:${encodeURIComponent(env.SUPABASE_DB_PASSWORD)}@db.${projectRef}.supabase.co:5432/postgres`;
+      
+      // Prefer pooler for production, direct for development
+      return env.NODE_ENV === 'production' ? poolerUrl : directUrl;
     }
   }
 
